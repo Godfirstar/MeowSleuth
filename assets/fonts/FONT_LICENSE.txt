@@ -1,0 +1,12 @@
+项目：反诈雷达 A30 宣传片
+
+字体建议（可商用优先）：
+1) Inter (SIL Open Font License 1.1)
+   下载：https://fonts.google.com/specimen/Inter
+   许可证：https://openfontlicense.org/
+
+2) Noto Sans SC (SIL Open Font License 1.1)
+   下载：https://fonts.google.com/noto/specimen/Noto+Sans+SC
+   许可证：https://openfontlicense.org/
+
+说明：若答辩机器未安装上述字体，请在 AE 中替换为系统无衬线字体，保持字重统一（标题 SemiBold，正文 Regular）。
