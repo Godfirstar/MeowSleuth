@@ -147,13 +147,13 @@ async function submitRiskAnalysis() {
 }
 
 function exportReport() {
-  const reportContent = `RiskCat 安全监测报告\n\n时间：${new Date().toLocaleString()}\n身份：${roleName[currentRole.value]}\n风险分：${riskScore.value}\n风险等级：${riskLevel.value}\n\n命中诈骗套路点：\n${explainPoints.value.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n建议动作：\n- 立即停止转账\n- 通过官方电话核验身份\n- 及时拨打 110 / 96110\n\n证据摘要：\n- ${evidence.value.screenshot}\n- ${evidence.value.transcript}\n`
+  const reportContent = `MeowSleuth 安全监测报告\n\n时间：${new Date().toLocaleString()}\n身份：${roleName[currentRole.value]}\n风险分：${riskScore.value}\n风险等级：${riskLevel.value}\n\n命中诈骗套路点：\n${explainPoints.value.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n建议动作：\n- 立即停止转账\n- 通过官方电话核验身份\n- 及时拨打 110 / 96110\n\n证据摘要：\n- ${evidence.value.screenshot}\n- ${evidence.value.transcript}\n`
 
   const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'RiskCat-安全监测报告.txt'
+  a.download = 'MeowSleuth-安全监测报告.txt'
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
       <div v-if="currentUser && showIntro" class="intro-screen" @click="closeIntro">
         <div class="intro-radar"></div>
         <div class="intro-ring"></div>
-        <h1>RiskCat</h1>
+        <h1>MeowSleuth</h1>
         <p>{{ roleName[currentRole] }}</p>
         <small>点击跳过</small>
       </div>
@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
     <template v-if="!currentUser">
       <section class="auth-wrap">
         <div class="auth-card">
-          <h1>RiskCat</h1>
+          <h1>MeowSleuth</h1>
           <p>按身份登录，进入对应端页面</p>
 
           <div class="auth-tabs">
@@ -249,7 +249,7 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <header class="topbar float-in">
-        <h1>RiskCat · {{ roleName[currentRole] }}</h1>
+        <h1>MeowSleuth · {{ roleName[currentRole] }}</h1>
         <div class="session-box">
           <span>{{ currentUser.username }}</span>
           <button @click="logout">退出登录</button>
