@@ -205,9 +205,7 @@ onBeforeUnmount(() => {
   <div class="page">
     <Transition name="intro-fade">
       <div v-if="currentUser && showIntro" class="intro-screen" @click="closeIntro">
-        <div class="intro-radar"></div>
-        <div class="intro-ring"></div>
-        <h1>MeowSleuth</h1>
+        <h1 class="intro-title typewriter">MeowSleuth 😼</h1>
         <p>{{ roleName[currentRole] }}</p>
         <small>点击跳过</small>
       </div>

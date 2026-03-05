@@ -75,34 +75,24 @@ body {
   background: radial-gradient(circle at 50% 40%, rgba(42, 98, 255, 0.14), rgba(6, 10, 20, 0.98) 45%), #050913;
 }
 
-.intro-screen h1 {
+.intro-title {
   margin: 0;
   font-size: clamp(42px, 7vw, 92px);
   letter-spacing: 3px;
   text-shadow: 0 0 28px rgba(111, 167, 255, 0.52);
-  animation: logoIn 950ms ease both;
+}
+
+.typewriter {
+  display: inline-block;
+  width: 12ch;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid rgba(190, 214, 255, 0.95);
+  animation: typing 1.8s steps(12, end) both, caretBlink 650ms steps(1, end) infinite;
 }
 
 .intro-screen p { margin: 0; color: #a8b9e8; letter-spacing: 2px; }
 .intro-screen small { color: rgba(189, 206, 246, 0.7); }
-
-.intro-radar,
-.intro-ring { position: absolute; border-radius: 999px; }
-
-.intro-radar {
-  width: min(48vw, 460px);
-  height: min(48vw, 460px);
-  background: conic-gradient(from 0deg, rgba(108, 168, 255, 0.72), rgba(108, 168, 255, 0.06) 25%, rgba(108, 168, 255, 0) 55%, rgba(108, 168, 255, 0.22));
-  animation: spin 2.2s linear infinite;
-}
-
-.intro-ring {
-  width: min(54vw, 520px);
-  height: min(54vw, 520px);
-  border: 1px solid rgba(118, 170, 255, 0.4);
-  box-shadow: 0 0 0 24px rgba(104, 156, 255, 0.03), 0 0 34px rgba(104, 156, 255, 0.2) inset;
-  animation: breathe 2.8s ease-in-out infinite;
-}
 
 .aurora {
   position: absolute;
@@ -205,9 +195,8 @@ input[type='file'] {
 
 .danger-pulse { animation: pulseRing 1.6s ease-in-out infinite; }
 
-@keyframes logoIn { from { opacity: 0; transform: translateY(8px) scale(0.98);} to { opacity: 1; transform: translateY(0) scale(1);} }
-@keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
-@keyframes breathe { 0%,100% { transform: scale(0.96); opacity: .72;} 50% { transform: scale(1.02); opacity: 1;} }
+@keyframes typing { from { width: 0; } to { width: 12ch; } }
+@keyframes caretBlink { 0%, 49% { border-color: rgba(190, 214, 255, 0.95); } 50%, 100% { border-color: transparent; } }
 @keyframes drift { from { transform: translate3d(0,0,0);} to { transform: translate3d(32px,-18px,0);} }
 @keyframes pulseRing {
   0%,100% { box-shadow: 0 0 0 0 rgba(255,84,111,.2), 0 18px 40px rgba(3,7,21,.34); }
