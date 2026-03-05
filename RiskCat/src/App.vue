@@ -1,50 +1,43 @@
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { defaultExplainPoints, defaultEvidence, roleName, roleThreshold, defaultTimelineEvents } from './api/mockData'
+import {
+  analyzeRisk,
+  getDashboardData,
+  getGuardianData,
+  getSession,
+  loginUser,
+  logoutUser,
+  registerUser,
+} from './api/mockService'
 
-const roleThreshold = {
-  victim: 55,
-  guardian: 65,
-  dashboard: 75,
-}
-
-const roleName = {
-  victim: '用户端（受害者）',
-  guardian: '监护人端',
-  dashboard: '后台看板',
-}
-
-const users = ref([])
 const currentUser = ref(null)
-
 const authMode = ref('login')
-const authForm = ref({
-  username: '',
-  password: '',
-  role: 'victim',
-})
+const authForm = ref({ username: '', password: '', role: 'victim' })
 const authError = ref('')
 const authOk = ref('')
 
 const inputMode = ref('chat')
+const chatInput = ref('')
 const riskScore = ref(86)
 const animatedScore = ref(22)
 const showPopup = ref(false)
 const showIntro = ref(true)
+const isAnalyzing = ref(false)
+
+const explainPoints = ref([...defaultExplainPoints])
+const evidence = ref({ ...defaultEvidence })
+const timelineEvents = ref([...defaultTimelineEvents])
+const distribution = ref({ high: 42, mid: 37, low: 21 })
+const guardianData = ref({
+  targetName: '母亲（老人模式）',
+  riskScore: 89,
+  advice: '立即电话确认，暂停一切转账行为',
+  actions: ['5分钟内电话联系本人', '指导其关闭共享软件并断开通话', '必要时协助报警并前往就近派出所'],
+})
 
 let scoreTimer = null
 let introTimer = null
-
-const timelineEvents = [
-  { time: '19:23', event: '收到“公检法”恐吓电话并要求转账自证清白', score: 91 },
-  { time: '18:40', event: '仿冒客服引导屏幕共享并索要验证码', score: 82 },
-  { time: '17:12', event: '兼职刷单返利话术，先返后骗', score: 68 },
-  { time: '16:55', event: '短链接钓鱼页面，诱导输入银行卡信息', score: 74 },
-]
-
-const evidence = {
-  screenshot: '截图证据：对方头像伪装为“警方”，要求下载会议软件并开启录屏。',
-  transcript: '转写证据："你涉嫌洗钱，现在把资金转入安全账户核查。"',
-}
 
 const currentRole = computed(() => currentUser.value?.role || 'victim')
 
@@ -61,77 +54,46 @@ const riskColor = computed(() => {
   return 'green'
 })
 
-function saveUsers() {
-  localStorage.setItem('riskcat_users', JSON.stringify(users.value))
-}
-
-function saveSession() {
-  localStorage.setItem('riskcat_session', JSON.stringify(currentUser.value))
-}
-
-function loadLocalData() {
-  const rawUsers = localStorage.getItem('riskcat_users')
-  const rawSession = localStorage.getItem('riskcat_session')
-
-  users.value = rawUsers ? JSON.parse(rawUsers) : []
-  currentUser.value = rawSession ? JSON.parse(rawSession) : null
-}
-
 function switchAuthMode(mode) {
   authMode.value = mode
   authError.value = ''
   authOk.value = ''
 }
 
-function register() {
+async function register() {
+  authError.value = ''
+  authOk.value = ''
+  try {
+    await registerUser(authForm.value)
+    authOk.value = '注册成功，请登录'
+    switchAuthMode('login')
+  } catch (e) {
+    authError.value = e.message || '注册失败'
+  }
+}
+
+async function login() {
   authError.value = ''
   authOk.value = ''
 
-  const { username, password, role } = authForm.value
-  if (!username || !password) {
-    authError.value = '用户名和密码不能为空'
-    return
+  try {
+    const { user, riskScore: score } = await loginUser(authForm.value)
+    currentUser.value = user
+    showIntro.value = true
+    introTimer = setTimeout(() => {
+      showIntro.value = false
+    }, 3000)
+    const prev = animatedScore.value
+    riskScore.value = score
+    animateScore(prev, score)
+  } catch (e) {
+    authError.value = e.message || '登录失败'
   }
-
-  if (users.value.some((u) => u.username === username)) {
-    authError.value = '用户名已存在，请直接登录'
-    return
-  }
-
-  users.value.push({ username, password, role })
-  saveUsers()
-  authOk.value = '注册成功，请登录'
-  switchAuthMode('login')
 }
 
-function login() {
-  authError.value = ''
-  authOk.value = ''
-
-  const { username, password } = authForm.value
-  const matched = users.value.find((u) => u.username === username && u.password === password)
-
-  if (!matched) {
-    authError.value = '账号或密码错误'
-    return
-  }
-
-  currentUser.value = { username: matched.username, role: matched.role }
-  saveSession()
-  showIntro.value = true
-  introTimer = setTimeout(() => {
-    showIntro.value = false
-  }, 3000)
-
-  const roleScore = matched.role === 'victim' ? 86 : matched.role === 'guardian' ? 71 : 63
-  const prev = animatedScore.value
-  riskScore.value = roleScore
-  animateScore(prev, roleScore)
-}
-
-function logout() {
+async function logout() {
+  await logoutUser()
   currentUser.value = null
-  localStorage.removeItem('riskcat_session')
   showIntro.value = false
   authForm.value.password = ''
 }
@@ -170,8 +132,22 @@ function contactGuardian() {
   alert('已发送一键通知给监护人端。')
 }
 
+async function submitRiskAnalysis() {
+  isAnalyzing.value = true
+  try {
+    const result = await analyzeRisk({ text: chatInput.value, mode: inputMode.value })
+    const prev = riskScore.value
+    riskScore.value = result.score
+    explainPoints.value = result.explain
+    evidence.value = result.evidence
+    animateScore(prev, result.score)
+  } finally {
+    isAnalyzing.value = false
+  }
+}
+
 function exportReport() {
-  const reportContent = `RiskCat 安全监测报告\n\n时间：${new Date().toLocaleString()}\n身份：${roleName[currentRole.value]}\n风险分：${riskScore.value}\n风险等级：${riskLevel.value}\n\n命中诈骗套路点：\n1. 冒充公检法施压\n2. 要求转账到“安全账户”\n3. 索要验证码并强调保密\n\n建议动作：\n- 立即停止转账\n- 通过官方电话核验身份\n- 及时拨打 110 / 96110\n\n证据摘要：\n- ${evidence.screenshot}\n- ${evidence.transcript}\n`
+  const reportContent = `RiskCat 安全监测报告\n\n时间：${new Date().toLocaleString()}\n身份：${roleName[currentRole.value]}\n风险分：${riskScore.value}\n风险等级：${riskLevel.value}\n\n命中诈骗套路点：\n${explainPoints.value.map((item, i) => `${i + 1}. ${item}`).join('\n')}\n\n建议动作：\n- 立即停止转账\n- 通过官方电话核验身份\n- 及时拨打 110 / 96110\n\n证据摘要：\n- ${evidence.value.screenshot}\n- ${evidence.value.transcript}\n`
 
   const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -182,23 +158,35 @@ function exportReport() {
   URL.revokeObjectURL(url)
 }
 
+async function loadRoleData(role) {
+  if (role === 'guardian') {
+    const data = await getGuardianData()
+    guardianData.value = data
+    evidence.value = data.evidence
+  }
+
+  if (role === 'dashboard') {
+    const data = await getDashboardData()
+    timelineEvents.value = data.timelineEvents
+    distribution.value = data.distribution
+  }
+}
+
 watch(
   () => currentRole.value,
-  (newRole) => {
+  async (newRole) => {
     if (!currentUser.value) return
-    const nextScore = newRole === 'victim' ? 86 : newRole === 'guardian' ? 71 : 63
-    const prev = riskScore.value
-    riskScore.value = nextScore
-    animateScore(prev, nextScore)
+    await loadRoleData(newRole)
   },
 )
 
-onMounted(() => {
-  loadLocalData()
-  if (currentUser.value) {
-    const base = currentRole.value === 'victim' ? 86 : currentRole.value === 'guardian' ? 71 : 63
-    riskScore.value = base
-    animateScore(22, base, 1200)
+onMounted(async () => {
+  const session = await getSession()
+  if (session?.user) {
+    currentUser.value = session.user
+    riskScore.value = session.riskScore
+    animateScore(22, session.riskScore, 1200)
+    await loadRoleData(session.user.role)
     introTimer = setTimeout(() => {
       showIntro.value = false
     }, 3000)
@@ -278,17 +266,19 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="input-card" v-if="inputMode === 'chat'">
-            <textarea rows="6" placeholder="把聊天记录粘贴到这里..."></textarea>
-            <button>提交分析</button>
+            <textarea v-model="chatInput" rows="6" placeholder="把聊天记录粘贴到这里..."></textarea>
+            <button :disabled="isAnalyzing" @click="submitRiskAnalysis">
+              {{ isAnalyzing ? '分析中...' : '提交分析（Mock接口）' }}
+            </button>
           </div>
           <div class="input-card" v-else-if="inputMode === 'image'">
             <input type="file" accept="image/*" />
-            <button>上传并识别截图</button>
+            <button :disabled="isAnalyzing" @click="submitRiskAnalysis">上传并识别截图（Mock）</button>
           </div>
           <div class="input-card" v-else>
             <input type="file" accept="audio/*" />
-            <button>开始录音（模拟）</button>
-            <button>上传通话录音</button>
+            <button :disabled="isAnalyzing" @click="submitRiskAnalysis">开始录音（模拟）</button>
+            <button :disabled="isAnalyzing" @click="submitRiskAnalysis">上传通话录音（Mock）</button>
           </div>
         </section>
 
@@ -303,9 +293,7 @@ onBeforeUnmount(() => {
           <div class="explain-card">
             <h3>解释型输出（Explainable AI）</h3>
             <ul>
-              <li>冒充公检法制造紧迫感</li>
-              <li>引导转账到所谓“安全账户”</li>
-              <li>要求提供验证码并强调“保密”</li>
+              <li v-for="item in explainPoints" :key="item">{{ item }}</li>
             </ul>
           </div>
 
@@ -326,9 +314,9 @@ onBeforeUnmount(() => {
           <div class="guardian-grid">
             <div class="card">
               <h3>风险摘要</h3>
-              <p>对象：母亲（老人模式）</p>
-              <p>当前风险：<strong class="danger">高风险（{{ animatedScore }}）</strong></p>
-              <p>建议：立即电话确认，暂停一切转账行为</p>
+              <p>对象：{{ guardianData.targetName }}</p>
+              <p>当前风险：<strong class="danger">高风险（{{ guardianData.riskScore }}）</strong></p>
+              <p>建议：{{ guardianData.advice }}</p>
             </div>
             <div class="card">
               <h3>证据</h3>
@@ -338,9 +326,7 @@ onBeforeUnmount(() => {
             <div class="card">
               <h3>建议操作</h3>
               <ul>
-                <li>5分钟内电话联系本人</li>
-                <li>指导其关闭共享软件并断开通话</li>
-                <li>必要时协助报警并前往就近派出所</li>
+                <li v-for="item in guardianData.actions" :key="item">{{ item }}</li>
               </ul>
             </div>
           </div>
@@ -367,9 +353,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="card">
               <h3>风险分布</h3>
-              <p>高风险：42%</p>
-              <p>中风险：37%</p>
-              <p>低风险：21%</p>
+              <p>高风险：{{ distribution.high }}%</p>
+              <p>中风险：{{ distribution.mid }}%</p>
+              <p>低风险：{{ distribution.low }}%</p>
             </div>
             <div class="card">
               <h3>报告中心</h3>
