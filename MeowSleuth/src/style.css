@@ -11,14 +11,8 @@ body {
   margin: 0;
   font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   background:
-    linear-gradient(140deg, #070b14 0%, #0b1220 48%, #0a0f1a 100%),
-    repeating-linear-gradient(
-      115deg,
-      rgba(255, 255, 255, 0.03) 0px,
-      rgba(255, 255, 255, 0.03) 1px,
-      transparent 1px,
-      transparent 18px
-    );
+    linear-gradient(rgba(7, 12, 24, 0.58), rgba(7, 12, 24, 0.68)),
+    url('/bg.webp') center / cover no-repeat fixed;
   color: var(--text);
 }
 
