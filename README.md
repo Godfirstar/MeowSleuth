@@ -1,1 +1,1 @@
-Meow once. Scam gone.
+Scan. Detect. Protect.
